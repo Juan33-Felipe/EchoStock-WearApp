@@ -1,7 +1,7 @@
 # EchoStock
 
 ## Descripción del Proyecto 
-El **Auditor de Inventario por Voz** es una aplicación de software diseñada específicamente para dispositivos SmartWatch, dirigida a trabajadores de grandes almacenes y centros de distribución. 
+El **EchoStock** es una aplicación de software diseñada específicamente para dispositivos SmartWatch, dirigida a trabajadores de grandes almacenes y centros de distribución. 
 
 ---
 
