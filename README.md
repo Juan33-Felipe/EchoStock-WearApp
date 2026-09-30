@@ -1,7 +1,7 @@
 # EchoStock
 
 ## Descripción del Proyecto 
-El **EchoStock** es una aplicación de software diseñada específicamente para dispositivos SmartWatch, dirigida a trabajadores de grandes almacenes y centros de distribución. 
+**EchoStock** es una aplicación de software diseñada específicamente para dispositivos SmartWatch, dirigida a trabajadores de grandes almacenes y centros de distribución. 
 
 ---
 
