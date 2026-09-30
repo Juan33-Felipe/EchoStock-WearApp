@@ -12,7 +12,7 @@ El **Auditor de Inventario por Voz** es una aplicación de software diseñada es
 * **RF-003 - Confirmación Rápida (Tap):** La interfaz gráfica debe mostrar un botón primario de pantalla completa o deslizable (Swipe) para confirmar que el conteo físico coincide con el sistema.
 * **RF-004 - Registro de Discrepancias:** Si hay diferencia de inventario, la interfaz gráfica debe mostrar selectores rápidos (+ / -) u opciones numéricas grandes para registrar la cantidad real.
 * **RF-005 - Sincronización con Backend (ERP/WMS):** El reloj debe enviar en tiempo real la confirmación o discrepancia al servidor central mediante una API REST/GraphQL.
-* **RF-006 - Modo Offline `[PROPOSAL]`:** El sistema debe almacenar las auditorías localmente en el reloj si se pierde la conexión WiFi en áreas aisladas del almacén, y sincronizar automáticamente al recuperar señal.
+* **RF-006 - Modo Offline :** El sistema debe almacenar las auditorías localmente en el reloj si se pierde la conexión WiFi en áreas aisladas del almacén, y sincronizar automáticamente al recuperar señal.
 
 ---
 
