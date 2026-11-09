@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Caja de inventario emitiendo ondas de voz ("eco"). Lienzo adaptativo 108dp, zona segura 66dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Caja -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round"
+        android:pathData="M32,46 L50,37 L68,46 L68,68 L50,77 L32,68 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round"
+        android:pathData="M32,46 L50,55 L68,46 M50,55 L50,77" />
+    <!-- Ondas -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#5AD8FF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M74,48 A10,10 0 0,1 74,66" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#5AD8FF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeAlpha="0.55"
+        android:pathData="M80,42 A18,18 0 0,1 80,72" />
+</vector>
