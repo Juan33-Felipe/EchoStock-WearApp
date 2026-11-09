@@ -149,8 +149,9 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
     /** Si hay un claro ganador vamos directo al producto: un toque menos (RNF-001). */
     private fun isDecisive(hits: List<SearchHit>): Boolean {
         val top = hits.first()
-        if (top.score < 0.9) return false
-        return hits.size == 1 || top.score - hits[1].score >= 0.15
+        val gap = if (hits.size == 1) 1.0 else top.score - hits[1].score
+        // SKU o ubicación exactos (≥ 0.9) con algo de ventaja, o un nombre casi exacto (≥ 0.8) muy por delante.
+        return (top.score >= 0.9 && gap >= 0.15) || (top.score >= 0.8 && gap >= 0.2)
     }
 
     fun browseCatalog() {
