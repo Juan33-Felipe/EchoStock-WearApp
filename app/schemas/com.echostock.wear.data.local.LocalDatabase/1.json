@@ -1,0 +1,132 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "c65e399423b95869468de34b9b93af7a",
+    "entities": [
+      {
+        "tableName": "products",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sku` TEXT NOT NULL, `name` TEXT NOT NULL, `locationCode` TEXT NOT NULL, `unit` TEXT NOT NULL, `systemQuantity` INTEGER NOT NULL, PRIMARY KEY(`sku`))",
+        "fields": [
+          {
+            "fieldPath": "sku",
+            "columnName": "sku",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "locationCode",
+            "columnName": "locationCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unit",
+            "columnName": "unit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "systemQuantity",
+            "columnName": "systemQuantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sku"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "pending_audits",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`clientAuditId` TEXT NOT NULL, `sku` TEXT NOT NULL, `operatorCode` TEXT NOT NULL, `deviceId` TEXT NOT NULL, `systemQuantity` INTEGER NOT NULL, `countedQuantity` INTEGER NOT NULL, `recordedAtEpochMs` INTEGER NOT NULL, `state` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `lastError` TEXT, PRIMARY KEY(`clientAuditId`))",
+        "fields": [
+          {
+            "fieldPath": "clientAuditId",
+            "columnName": "clientAuditId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sku",
+            "columnName": "sku",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operatorCode",
+            "columnName": "operatorCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "systemQuantity",
+            "columnName": "systemQuantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countedQuantity",
+            "columnName": "countedQuantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordedAtEpochMs",
+            "columnName": "recordedAtEpochMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempts",
+            "columnName": "attempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "lastError",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "clientAuditId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c65e399423b95869468de34b9b93af7a')"
+    ]
+  }
+}

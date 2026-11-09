@@ -37,9 +37,15 @@ data class AuditDraft(
 }
 
 /** Dónde quedó una auditoría tras registrarla. */
-enum class SubmitOutcome {
+sealed interface SubmitOutcome {
     /** Enviada al servidor en tiempo real (RF-005). */
-    SYNCED,
-    /** Guardada en el reloj; se enviará al recuperar señal (RF-006). */
-    QUEUED_OFFLINE,
+    data object Synced : SubmitOutcome
+
+    /** Guardada en el reloj; se enviará sola al recuperar señal (RF-006). */
+    data object QueuedOffline : SubmitOutcome
+
+    /** El servidor la rechazó (SKU inexistente, datos inválidos). No se reintenta. */
+    data class Rejected(val reason: String) : SubmitOutcome
 }
+
+enum class Connection { UNKNOWN, ONLINE, OFFLINE }
