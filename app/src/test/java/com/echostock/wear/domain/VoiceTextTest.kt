@@ -47,4 +47,11 @@ class VoiceTextTest {
     @Test fun `sin número devuelve null`() {
         assertNull(VoiceText.parseQuantity("no sé"))
     }
+
+    @Test fun `nombres de letras como los transcribe el reconocedor`() {
+        assertEquals("cja001", VoiceText.compact("se jota a cero cero uno"))
+        assertEquals("bd 0 1", VoiceText.normalize("be de cero uno"))
+        assertEquals("guantes de nitrilo talla m", VoiceText.normalize("guantes de nitrilo talla eme"))
+        assertEquals("w", VoiceText.normalize("doble ve"))
+    }
 }

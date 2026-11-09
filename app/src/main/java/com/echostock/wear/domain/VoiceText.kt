@@ -46,7 +46,7 @@ object VoiceText {
     fun normalize(text: String): String {
         val tokens = basic(text).split(" ").filter { it.isNotEmpty() }
         val withNumbers = convertNumbers(tokens)
-        return joinSpelledLetters(withNumbers).joinToString(" ")
+        return joinSpelledLetters(convertLetterNames(withNumbers)).joinToString(" ")
     }
 
     /** Palabras que el operario antepone a un código y no forman parte de él. */
@@ -124,6 +124,39 @@ object VoiceText {
             unit != null && !(consumed && unit == 0) -> { total += unit; i++; consumed = true }
         }
         return if (consumed) total to i else null
+    }
+
+    /**
+     * Nombres de letras tal como los transcribe el reconocedor al deletrear:
+     * "c j a" llega como "se jota a".
+     */
+    private val LETTER_NAMES = mapOf(
+        "be" to "b", "ce" to "c", "se" to "c", "efe" to "f", "ge" to "g", "hache" to "h",
+        "jota" to "j", "cota" to "j", "ka" to "k", "ele" to "l", "eme" to "m", "ene" to "n",
+        "pe" to "p", "cu" to "q", "erre" to "r", "ese" to "s", "te" to "t", "uve" to "v",
+        "ve" to "v", "equis" to "x", "ye" to "y", "zeta" to "z",
+    )
+
+    private fun isSpelledToken(t: String?): Boolean =
+        t != null && (t.length == 1 || t in LETTER_NAMES || t.all { it.isDigit() })
+
+    private fun convertLetterNames(tokens: List<String>): List<String> {
+        val out = mutableListOf<String>()
+        var i = 0
+        while (i < tokens.size) {
+            val t = tokens[i]
+            when {
+                // "doble ve" / "uve doble" → w
+                t == "doble" && tokens.getOrNull(i + 1) in setOf("ve", "uve") -> { out += "w"; i += 2; continue }
+                (t == "uve" || t == "ve") && tokens.getOrNull(i + 1) == "doble" -> { out += "w"; i += 2; continue }
+                t in LETTER_NAMES -> out += LETTER_NAMES.getValue(t)
+                // "de" es casi siempre la preposición; solo es la letra d dentro de un deletreo.
+                t == "de" && (isSpelledToken(tokens.getOrNull(i - 1)) || isSpelledToken(tokens.getOrNull(i + 1))) -> out += "d"
+                else -> out += t
+            }
+            i++
+        }
+        return out
     }
 
     /** Une letras sueltas consecutivas ("c j a" → "cja"), típico al deletrear un SKU. */
