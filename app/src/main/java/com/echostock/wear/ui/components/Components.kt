@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -202,3 +204,49 @@ fun CircleIconButton(
     repeatOnHold: Boolean = false,
     content: @Composable () -> Unit,
 ) = PressButton(onClick, background, Modifier.size(size), description, enabled, repeatOnHold, content)
+
+/** Subtítulo de lo que dice el reloj, arriba de la pantalla mientras "habla". */
+@Composable
+fun CaptionBanner(caption: com.echostock.wear.platform.Caption?, modifier: Modifier = Modifier) {
+    var visible by remember { mutableStateOf<com.echostock.wear.platform.Caption?>(null) }
+    LaunchedEffect(caption) {
+        visible = caption
+        if (caption != null) {
+            // Aproximadamente lo que tarda en leerse en voz alta, más un margen.
+            delay(1_500L + caption.text.length * 55L)
+            visible = null
+        }
+    }
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible != null,
+        enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { -it },
+        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { -it },
+        modifier = modifier,
+    ) {
+        val text = visible?.text.orEmpty()
+        Row(
+            Modifier
+                .padding(top = 6.dp)
+                .widthIn(max = 170.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                .background(EchoColors.SurfaceHigh)
+                .padding(horizontal = 10.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.wear.compose.material.Icon(
+                androidx.compose.material.icons.Icons.Rounded.GraphicEq,
+                contentDescription = null,
+                tint = EchoColors.Signal,
+                modifier = Modifier.size(14.dp),
+            )
+            Spacer(Modifier.width(5.dp))
+            Text(
+                text,
+                fontSize = 11.sp,
+                color = EchoColors.OnSurface,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+    }
+}

@@ -60,6 +60,7 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
     private val container = (app as EchoStockApp).container
     val haptics = container.haptics
     private val speaker = Speaker(app)
+    val caption = speaker.caption
 
     val operatorCode = container.operatorCode
     val voiceAvailable = RecognizeSpeech.isAvailable(app)

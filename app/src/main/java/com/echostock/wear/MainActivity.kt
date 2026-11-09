@@ -4,7 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -21,6 +25,7 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import com.echostock.wear.platform.rememberVoiceInput
 import com.echostock.wear.ui.AuditViewModel
 import com.echostock.wear.ui.Route
+import com.echostock.wear.ui.components.CaptionBanner
 import com.echostock.wear.ui.components.HapticPulseOverlay
 import com.echostock.wear.ui.screens.CountScreen
 import com.echostock.wear.ui.screens.DoneScreen
@@ -65,8 +70,15 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
         }
     }
 
+    val caption by vm.caption.collectAsStateWithLifecycle()
+
     Scaffold(
-        timeText = { TimeText() },
+        timeText = {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                TimeText()
+                CaptionBanner(caption)
+            }
+        },
         vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) },
         positionIndicator = { PositionIndicator(scalingLazyListState = listState) },
     ) {
