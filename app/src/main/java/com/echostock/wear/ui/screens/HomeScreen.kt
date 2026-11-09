@@ -36,7 +36,6 @@ import com.echostock.wear.ui.SyncState
 import com.echostock.wear.ui.components.CircleIconButton
 import com.echostock.wear.ui.components.StatusPill
 import com.echostock.wear.ui.theme.EchoColors
-import com.echostock.wear.ui.theme.EyebrowStyle
 
 /**
  * Inicio: un solo toque para dictar (RF-001, RNF-001). Sin teclado en ningún caso;
@@ -57,14 +56,12 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Spacer(Modifier.height(14.dp))
-        Text("ECHOSTOCK", style = EyebrowStyle, color = EchoColors.Signal)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(20.dp))
 
         Box(contentAlignment = Alignment.Center) {
             if (searching) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(86.dp),
+                    modifier = Modifier.size(78.dp),
                     indicatorColor = EchoColors.Signal,
                     trackColor = EchoColors.Surface,
                     strokeWidth = 4.dp,
@@ -75,11 +72,11 @@ fun HomeScreen(
             CircleIconButton(
                 onClick = onDictate,
                 background = EchoColors.Signal,
-                size = 72.dp,
+                size = 64.dp,
                 description = "Dictar producto, SKU o ubicación",
                 enabled = !searching,
             ) {
-                Icon(Icons.Rounded.Mic, contentDescription = null, tint = EchoColors.OnColor, modifier = Modifier.size(36.dp))
+                Icon(Icons.Rounded.Mic, contentDescription = null, tint = EchoColors.OnColor, modifier = Modifier.size(32.dp))
             }
         }
 
@@ -89,20 +86,20 @@ fun HomeScreen(
             is HomeMessage.NotFound -> "No encontré “${message.query}”" to EchoColors.Discrepancy
             HomeMessage.NotUnderstood -> "No entendí, toca y repite" to EchoColors.Discrepancy
             HomeMessage.VoiceUnavailable -> "Voz no disponible: usa el catálogo" to EchoColors.Offline
-            null -> "Toca y dicta producto, SKU o ubicación" to EchoColors.Muted
+            null -> "Dicta producto, SKU o ubicación" to EchoColors.Muted
         }
         Text(
             text,
             color = color,
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        Spacer(Modifier.height(8.dp))
-        StatusPill(sync, operator)
         Spacer(Modifier.height(6.dp))
+        StatusPill(sync, operator)
+        Spacer(Modifier.height(4.dp))
         CompactChip(
             onClick = onBrowse,
             label = { Text("Catálogo", fontSize = 12.sp) },
@@ -124,7 +121,7 @@ private fun IdleHalo() {
     )
     Box(
         Modifier
-            .size(86.dp)
+            .size(78.dp)
             .scale(s)
             .then(Modifier.padding(0.dp)),
     ) {
