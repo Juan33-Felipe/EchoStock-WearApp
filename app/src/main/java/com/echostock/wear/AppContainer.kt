@@ -9,6 +9,7 @@ import com.echostock.wear.data.ServerStatus
 import com.echostock.wear.data.local.LocalDatabase
 import com.echostock.wear.data.remote.EchoStockApi
 import com.echostock.wear.data.sync.WorkManagerSyncScheduler
+import com.echostock.wear.platform.Haptics
 
 /** Inyección de dependencias manual: un único grafo de objetos por proceso. */
 class AppContainer(context: Context) {
@@ -21,6 +22,8 @@ class AppContainer(context: Context) {
 
     val products = ProductRepository(api, db.products(), serverStatus)
     val audits = AuditRepository(api, db.pendingAudits(), scheduler, serverStatus)
+
+    val haptics = Haptics(appContext)
 
     val operatorCode: String = BuildConfig.OPERATOR_CODE
 
