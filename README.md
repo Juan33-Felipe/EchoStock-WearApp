@@ -48,7 +48,7 @@ Al abrir un producto el reloj lee en voz alta lo que indica el sistema; al termi
 
 | Requisito | Implementación |
 |---|---|
-| RF-001 Búsqueda por voz | `RecognizerIntent` en español con hasta 5 hipótesis. `VoiceText` normaliza números en palabras, letras deletreadas y palabras de relleno ("pasillo", "sku"). Si hay un ganador claro se abre directamente el producto. |
+| RF-001 Búsqueda por voz | Reconocimiento **dentro del reloj** con [Vosk](https://alphacephei.com/vosk/) (modelo español, sin internet): un toque y escucha, transcripción en vivo y corte automático al terminar la frase. `VoiceText` normaliza números en palabras, nombres de letras ("se jota a" → `CJA`) y palabras de relleno ("pasillo", "sku"). Si hay un ganador claro se abre directamente el producto. Respaldo: el reconocedor del sistema. |
 | RF-002 Lectura por audio | `Speaker` (TextToSpeech): *"Cajas tipo A, pasillo A, estante 1, nivel 3. Sistema indica 50 cajas."* Tocar la cifra la repite. |
 | RF-003 Confirmación rápida | Botón verde grande "Coincide": un toque. |
 | RF-004 Discrepancias | Pantalla de conteo con +/− grandes (mantener pulsado repite), corona giratoria y dictado del número ("cuarenta y ocho"). |
@@ -57,8 +57,8 @@ Al abrir un producto el reloj lee en voz alta lo que indica el sistema; al termi
 | RNF-001 Máx. 2 toques | Toda acción es de 1 toque; ninguna pantalla tiene teclado. |
 | RNF-002 Alto contraste | Fondo negro puro, texto blanco, verde = correcto, rojo = discrepancia, ámbar = sin conexión. Pantalla de resultado a color completo. |
 | RNF-003 Háptica | Patrones distintos en `Haptics`: toque, voz entendida (2 pulsos), confirmado (1 largo), discrepancia (3), en cola (largo-corto), error (zumbido). Cada vibración pinta además un anillo de color en el borde (visible en el emulador). |
-| RNF-004 Ruido | Se buscan las 3 mejores hipótesis del reconocedor y se queda la que mejor encaja con el catálogo; coincidencia aproximada (Levenshtein) tolera erratas. |
-| RNF-005 Batería | Micrófono solo durante el dictado; pantalla encendida forzada solo al contar; sin sondeos: la sincronización espera a que haya red (restricción de WorkManager); timeouts de red cortos. |
+| RNF-004 Ruido | Vocabulario cerrado (`VoiceGrammar`): el reconocedor solo puede producir palabras del catálogo, números y letras; el resto cae en `[unk]`. Además se buscan las 3 mejores hipótesis y se queda la que mejor encaja; la coincidencia aproximada (Levenshtein) tolera erratas. |
+| RNF-005 Batería | Micrófono solo durante el dictado (máx. 8 s); pantalla encendida forzada solo al contar; sin sondeos: la sincronización espera a que haya red (restricción de WorkManager); timeouts de red cortos. |
 
 ### Arquitectura
 
@@ -76,7 +76,19 @@ Requisitos: Android Studio (o SDK + JDK 17) y el backend corriendo en el PC en e
 1. Arranca el backend (ver su README).
 2. Crea un emulador **Wear OS 5 (API 34) – Large Round** y en *Extended controls → Microphone* activa
    *"Virtual microphone uses host audio input"* para dictar con el micrófono del PC.
-3. `./gradlew installDebug` y abre **EchoStock** en el reloj.
+3. `./gradlew installDebug` y abre **EchoStock** en el reloj. La primera compilación descarga el modelo
+   de voz en español (~40 MB) a `.cache/` (no se versiona).
+
+> El emulador de Wear OS no trae motor de texto a voz: lo que el reloj "dice" aparece también como
+> subtítulo en la parte superior, y la vibración se ve como un anillo de color en el borde.
+
+**Probar la voz sin micrófono (solo builds debug):** un WAV PCM 16 kHz mono copiado en
+`files/voice-inject.wav` de la app se usa como entrada del siguiente dictado:
+
+```
+adb push frase.wav /data/local/tmp/v.wav
+adb shell run-as com.echostock.wear cp /data/local/tmp/v.wav files/voice-inject.wav
+```
 
 Desde el emulador el backend se alcanza en `http://10.0.2.2:8080` (configurable en `app/build.gradle.kts`).
 Para probar el modo offline basta con detener el backend: las auditorías se guardan en el reloj y se
