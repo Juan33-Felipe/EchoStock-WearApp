@@ -34,11 +34,12 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
 
-enum class Route { HOME, RESULTS, PRODUCT, COUNT, DONE }
+enum class Route { HOME, RESULTS, PRODUCT, COUNT, ADD_PRODUCT, DONE }
 
 sealed interface HomeMessage {
     data class Searching(val query: String) : HomeMessage
     data class NotFound(val query: String) : HomeMessage
+    data class ProductDeleted(val name: String) : HomeMessage
     data object NotUnderstood : HomeMessage
     data object VoiceUnavailable : HomeMessage
 }
@@ -53,6 +54,8 @@ data class FlowState(
     val product: Product? = null,
     val counted: Int = 0,
     val submitting: Boolean = false,
+    val confirmingDelete: Boolean = false,
+    val newProductDraft: VoiceText.NewProductDraft = VoiceText.NewProductDraft("", "A-01-01", "unidades", 10),
     val done: Done? = null,
 )
 
@@ -152,10 +155,20 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         haptics.play(Haptic.HEARD)
-        search(alternatives)
+        when (val cmd = VoiceText.parseCommand(alternatives.first())) {
+            is VoiceText.VoiceCommand.Add -> {
+                openAddProduct(cmd.details)
+            }
+            is VoiceText.VoiceCommand.Delete -> {
+                search(listOf(cmd.query), forDeletion = true)
+            }
+            is VoiceText.VoiceCommand.Search -> {
+                search(alternatives, forDeletion = false)
+            }
+        }
     }
 
-    private fun search(alternatives: List<String>) {
+    private fun search(alternatives: List<String>, forDeletion: Boolean = false) {
         val shown = alternatives.first()
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
@@ -168,9 +181,9 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
                     speaker.speak(Phrases.notFound(shown))
                     _state.update { it.copy(message = HomeMessage.NotFound(shown)) }
                 }
-                isDecisive(hits) -> {
+                forDeletion || isDecisive(hits) -> {
                     _state.update { it.copy(message = null, offlineResults = outcome!!.offline) }
-                    openProduct(hits.first().product)
+                    openProduct(hits.first().product, confirmDelete = forDeletion)
                 }
                 else -> {
                     _state.update {
@@ -213,14 +226,137 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- Producto y lectura por voz (RF-002) ----
 
-    fun openProduct(product: Product) {
-        _state.update { it.copy(product = product, counted = product.systemQuantity, done = null) }
-        speaker.speak(Phrases.systemStatus(product))
+    fun openProduct(product: Product, confirmDelete: Boolean = false) {
+        _state.update {
+            it.copy(
+                product = product,
+                counted = product.systemQuantity,
+                confirmingDelete = confirmDelete,
+                done = null,
+            )
+        }
+        if (confirmDelete) {
+            speaker.speak(Phrases.confirmDelete(product.name))
+        } else {
+            speaker.speak(Phrases.systemStatus(product))
+        }
         _navigation.tryEmit(Route.PRODUCT)
     }
 
     fun repeatStatus() {
         state.value.product?.let { speaker.speak(Phrases.systemStatus(it)) }
+    }
+
+    // ---- Agregar y eliminar productos por voz ----
+
+    fun openAddProduct(initialRaw: String = "") {
+        speaker.stop()
+        haptics.play(Haptic.TAP)
+        val seed = initialRaw.ifBlank {
+            (state.value.message as? HomeMessage.NotFound)?.query.orEmpty()
+        }
+        val draft = if (seed.isNotBlank()) {
+            VoiceText.parseNewProduct(seed)
+        } else {
+            VoiceText.NewProductDraft("", "A-01-01", "unidades", 10)
+        }
+        _state.update { it.copy(newProductDraft = draft, message = null) }
+        speaker.speak(Phrases.PROMPT_NEW_PRODUCT)
+        _navigation.tryEmit(Route.ADD_PRODUCT)
+    }
+
+    fun dictateNewProduct(fallback: () -> Unit) {
+        speaker.stop()
+        haptics.play(Haptic.TAP)
+        viewModelScope.launch {
+            val heard = try {
+                speech.listen(VoiceGrammar.forNewProduct())
+            } catch (e: SpeechUnavailableException) {
+                fallback()
+                return@launch
+            }
+            onNewProductVoice(heard)
+        }
+    }
+
+    fun onNewProductVoice(alternatives: List<String>?) {
+        val text = alternatives?.firstOrNull { it.isNotBlank() }
+        if (text == null) {
+            haptics.play(Haptic.ERROR)
+            speaker.speak(Phrases.NOT_UNDERSTOOD)
+            return
+        }
+        haptics.play(Haptic.HEARD)
+        val current = state.value.newProductDraft
+        val updated = VoiceText.parseNewProduct(
+            rawText = text,
+            defaultName = current.name,
+            defaultLocation = current.locationCode,
+            defaultUnit = current.unit,
+            defaultQuantity = current.quantity,
+        )
+        _state.update { it.copy(newProductDraft = updated) }
+        speaker.speak("${updated.name}, ${updated.quantity} ${updated.unit}.")
+    }
+
+    fun adjustNewProductQuantity(delta: Int, withHaptic: Boolean = true) {
+        if (withHaptic) haptics.play(Haptic.TAP)
+        _state.update { s ->
+            val nextQty = (s.newProductDraft.quantity + delta).coerceIn(0, MAX_COUNT)
+            s.copy(newProductDraft = s.newProductDraft.copy(quantity = nextQty))
+        }
+    }
+
+    fun saveNewProduct() {
+        val draft = state.value.newProductDraft
+        if (draft.name.isBlank() || state.value.submitting) return
+        _state.update { it.copy(submitting = true) }
+        viewModelScope.launch {
+            val created = container.products.create(
+                name = draft.name,
+                locationCode = draft.locationCode,
+                unit = draft.unit,
+                systemQuantity = draft.quantity,
+            )
+            haptics.play(Haptic.CONFIRMED)
+            speaker.speak(Phrases.productAdded(created))
+            _state.update {
+                it.copy(
+                    submitting = false,
+                    product = created,
+                    counted = created.systemQuantity,
+                    confirmingDelete = false,
+                )
+            }
+            _navigation.tryEmit(Route.PRODUCT)
+        }
+    }
+
+    fun requestDeleteProduct() {
+        val p = state.value.product ?: return
+        haptics.play(Haptic.TAP)
+        _state.update { it.copy(confirmingDelete = true) }
+        speaker.speak(Phrases.confirmDelete(p.name))
+    }
+
+    fun cancelDeleteProduct() {
+        haptics.play(Haptic.TAP)
+        _state.update { it.copy(confirmingDelete = false) }
+    }
+
+    fun confirmDeleteProduct() {
+        val p = state.value.product ?: return
+        if (state.value.submitting) return
+        _state.update { it.copy(submitting = true) }
+        viewModelScope.launch {
+            container.products.delete(p.sku)
+            haptics.play(Haptic.CONFIRMED)
+            speaker.speak(Phrases.productDeleted(p.name))
+            _state.update {
+                FlowState(message = HomeMessage.ProductDeleted(p.name))
+            }
+            _navigation.tryEmit(Route.HOME)
+        }
     }
 
     // ---- Confirmación (RF-003) y discrepancias (RF-004) ----
@@ -276,6 +412,7 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(submitting = true) }
         viewModelScope.launch {
             val outcome = try {
+                runCatching { container.products.syncLocalChanges() }
                 container.audits.submit(draft)
             } catch (e: Exception) {
                 SubmitOutcome.Rejected(e.message ?: "Error inesperado")

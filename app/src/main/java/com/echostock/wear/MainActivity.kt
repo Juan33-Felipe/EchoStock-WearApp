@@ -37,6 +37,7 @@ import com.echostock.wear.ui.Route
 import com.echostock.wear.ui.components.CaptionBanner
 import com.echostock.wear.ui.components.HapticPulseOverlay
 import com.echostock.wear.ui.components.ListeningOverlay
+import com.echostock.wear.ui.screens.AddProductScreen
 import com.echostock.wear.ui.screens.CountScreen
 import com.echostock.wear.ui.screens.DoneScreen
 import com.echostock.wear.ui.screens.HomeScreen
@@ -70,6 +71,7 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
     // Respaldo: reconocedor del sistema si el offline no está disponible.
     val systemDictateProduct = rememberVoiceInput(vm::onSearchVoice)
     val systemDictateCount = rememberVoiceInput(vm::onCountVoice)
+    val systemDictateNewProduct = rememberVoiceInput(vm::onNewProductVoice)
     val listening by vm.listening.collectAsStateWithLifecycle()
     var listenPrompt by remember { mutableStateOf("") }
 
@@ -96,8 +98,15 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
         if (vm.voiceAvailable) systemDictateProduct("¿Qué producto auditas?") else vm.onVoiceUnavailable()
     }
     val dictateProduct = {
-        listenPrompt = "Producto, SKU o ubicación"
+        listenPrompt = "Producto, “agregar…” o “eliminar…”"
         withMic(onGranted = { vm.dictateProduct(fallback = systemProductFallback) }, onDenied = systemProductFallback)
+    }
+    val dictateNewProduct = {
+        listenPrompt = "Nombre y cantidad (ej. Guantes 20)"
+        val fallback = {
+            if (vm.voiceAvailable) systemDictateNewProduct("Nombre y cantidad del producto") else vm.onVoiceUnavailable()
+        }
+        withMic(onGranted = { vm.dictateNewProduct(fallback) }, onDenied = fallback)
     }
 
     LaunchedEffect(nav) {
@@ -130,6 +139,7 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
                     operator = vm.operatorCode,
                     onDictate = dictateProduct,
                     onBrowse = vm::browseCatalog,
+                    onAddProduct = { vm.openAddProduct() },
                 )
             }
             composable(Route.RESULTS.name) {
@@ -139,6 +149,16 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
                     offline = state.offlineResults,
                     listState = listState,
                     onSelect = { vm.openProduct(it.product) },
+                    onAddProduct = { vm.openAddProduct() },
+                )
+            }
+            composable(Route.ADD_PRODUCT.name) {
+                AddProductScreen(
+                    draft = state.newProductDraft,
+                    saving = state.submitting,
+                    onDictateDetails = dictateNewProduct,
+                    onAdjustQuantity = vm::adjustNewProductQuantity,
+                    onSave = vm::saveNewProduct,
                 )
             }
             composable(Route.PRODUCT.name) {
@@ -146,9 +166,13 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
                     ProductScreen(
                         product = p,
                         submitting = state.submitting,
+                        confirmingDelete = state.confirmingDelete,
                         onRepeat = vm::repeatStatus,
                         onMatch = vm::confirmMatch,
                         onMismatch = vm::openCount,
+                        onRequestDelete = vm::requestDeleteProduct,
+                        onCancelDelete = vm::cancelDeleteProduct,
+                        onConfirmDelete = vm::confirmDeleteProduct,
                     )
                 }
             }
