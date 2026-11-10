@@ -90,6 +90,8 @@ class OfflineSpeech(private val context: Context, private val scope: CoroutineSc
 
             fun finish(result: List<String>?) {
                 if (!finished.compareAndSet(false, true)) return
+                // release() detiene el hilo de audio y ESPERA a que termine: cerrar el reconocedor
+                // con ese hilo todavía enviándole audio provoca un fallo nativo en Vosk.
                 release()
                 recognizer.close()
                 stopCurrent = null
@@ -123,12 +125,13 @@ class OfflineSpeech(private val context: Context, private val scope: CoroutineSc
                 val stream = FileInputStream(injected).apply { skip(WAV_HEADER_BYTES) }
                 val service = SpeechStreamService(recognizer, stream, SAMPLE_RATE)
                 stop = { service.stop() }
-                release = { runCatching { stream.close() }; injected.delete() }
+                release = { service.stop(); runCatching { stream.close() }; injected.delete() }
                 service.start(listener)
             } else {
                 val service = SpeechService(recognizer, SAMPLE_RATE)
                 stop = { service.stop() }
-                release = { service.shutdown() }
+                // cancel() interrumpe y hace join del hilo de grabación sin emitir otro resultado.
+                release = { service.cancel(); service.shutdown() }
                 service.startListening(listener, LISTEN_TIMEOUT_MS)
             }
             _state.value = ListenState.Listening("")
