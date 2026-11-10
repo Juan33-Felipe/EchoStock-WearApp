@@ -20,21 +20,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
 import com.echostock.wear.platform.ListenState
 import com.echostock.wear.ui.theme.EchoColors
@@ -66,12 +61,14 @@ fun ListeningOverlay(state: ListenState, prompt: String, onStop: () -> Unit) {
                 Spacer(Modifier.height(10.dp))
                 Box(contentAlignment = Alignment.Center) {
                     if (!preparing) Ripples()
-                    Box(
-                        Modifier.size(56.dp).clip(CircleShape).background(EchoColors.Signal),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Rounded.Mic, null, tint = EchoColors.OnColor, modifier = Modifier.size(28.dp))
-                    }
+                    VoiceOrb(
+                        modifier = Modifier.size(72.dp),
+                        activity = when {
+                            preparing -> 0.35f
+                            partial.isNotEmpty() -> 1.0f
+                            else -> 0.78f
+                        },
+                    )
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
