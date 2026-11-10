@@ -47,6 +47,37 @@ android {
     }
 }
 
+// ---- Modelo de voz offline (Vosk, español). No se versiona: se descarga una vez a .cache/ ----
+val voskModel = "vosk-model-small-es-0.42"
+val voskAssetsRoot = rootProject.layout.projectDirectory.dir(".cache/vosk-assets")
+
+val downloadVoskModel by tasks.registering {
+    description = "Descarga el modelo de reconocimiento de voz en español ($voskModel)."
+    val outDir = voskAssetsRoot.dir("model-es").asFile
+    outputs.dir(outDir)
+    onlyIf { !File(outDir, "uuid").exists() }
+    doLast {
+        val zip = File(temporaryDir, "$voskModel.zip")
+        uri("https://alphacephei.com/vosk/models/$voskModel.zip").toURL().openStream().use { input ->
+            zip.outputStream().use { input.copyTo(it) }
+        }
+        outDir.deleteRecursively()
+        project.copy {
+            from(zipTree(zip)) {
+                eachFile { path = path.substringAfter('/') }
+                exclude("**/README")
+            }
+            includeEmptyDirs = false
+            into(outDir)
+        }
+        // StorageService de Vosk usa este archivo para saber si ya desempaquetó el modelo.
+        File(outDir, "uuid").writeText(voskModel)
+    }
+}
+
+android.sourceSets["main"].assets.srcDir(voskAssetsRoot)
+tasks.named("preBuild") { dependsOn(downloadVoskModel) }
+
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
@@ -69,6 +100,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.work.runtime)
+    implementation(libs.vosk.android) { exclude(group = "net.java.dev.jna") }
+    implementation(libs.jna) { artifact { type = "aar" } }
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)

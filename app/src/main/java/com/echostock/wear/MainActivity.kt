@@ -1,6 +1,15 @@
 package com.echostock.wear
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -27,6 +36,7 @@ import com.echostock.wear.ui.AuditViewModel
 import com.echostock.wear.ui.Route
 import com.echostock.wear.ui.components.CaptionBanner
 import com.echostock.wear.ui.components.HapticPulseOverlay
+import com.echostock.wear.ui.components.ListeningOverlay
 import com.echostock.wear.ui.screens.CountScreen
 import com.echostock.wear.ui.screens.DoneScreen
 import com.echostock.wear.ui.screens.HomeScreen
@@ -57,8 +67,38 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
     val sync by vm.sync.collectAsStateWithLifecycle()
     val listState = rememberScalingLazyListState()
 
-    val dictateProduct = rememberVoiceInput(vm::onSearchVoice)
-    val dictateCount = rememberVoiceInput(vm::onCountVoice)
+    // Respaldo: reconocedor del sistema si el offline no está disponible.
+    val systemDictateProduct = rememberVoiceInput(vm::onSearchVoice)
+    val systemDictateCount = rememberVoiceInput(vm::onCountVoice)
+    val listening by vm.listening.collectAsStateWithLifecycle()
+    var listenPrompt by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    // Qué hacer cuando el usuario responda al diálogo de permiso: (si concede, si deniega).
+    var pendingMic by remember { mutableStateOf<Pair<() -> Unit, () -> Unit>?>(null) }
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val (onGranted, onDenied) = pendingMic ?: return@rememberLauncherForActivityResult
+        pendingMic = null
+        if (granted) onGranted() else onDenied()
+    }
+
+    /** El reconocedor offline necesita el micrófono; si se deniega, queda el del sistema. */
+    fun withMic(onGranted: () -> Unit, onDenied: () -> Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            onGranted()
+        } else {
+            pendingMic = onGranted to onDenied
+            micPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    val systemProductFallback = {
+        if (vm.voiceAvailable) systemDictateProduct("¿Qué producto auditas?") else vm.onVoiceUnavailable()
+    }
+    val dictateProduct = {
+        listenPrompt = "Producto, SKU o ubicación"
+        withMic(onGranted = { vm.dictateProduct(fallback = systemProductFallback) }, onDenied = systemProductFallback)
+    }
 
     LaunchedEffect(nav) {
         vm.navigation.collect { route ->
@@ -88,14 +128,7 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
                     message = state.message,
                     sync = sync,
                     operator = vm.operatorCode,
-                    onDictate = {
-                        if (vm.voiceAvailable) {
-                            vm.clearMessage()
-                            dictateProduct("¿Qué producto auditas?")
-                        } else {
-                            vm.onVoiceUnavailable()
-                        }
-                    },
+                    onDictate = dictateProduct,
                     onBrowse = vm::browseCatalog,
                 )
             }
@@ -126,7 +159,11 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
                         counted = state.counted,
                         submitting = state.submitting,
                         onAdjust = vm::adjustCount,
-                        onDictate = { dictateCount("¿Cuántas ${p.unit} contaste?") },
+                        onDictate = {
+                            listenPrompt = "¿Cuántas ${p.unit} contaste?"
+                            val fallback = { systemDictateCount("¿Cuántas ${p.unit} contaste?") }
+                            withMic(onGranted = { vm.dictateCount(fallback) }, onDenied = fallback)
+                        },
                         onSubmit = vm::submitCount,
                     )
                 }
@@ -135,5 +172,6 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
                 state.done?.let { DoneScreen(it, onFinish = vm::reset) }
             }
         }
+        ListeningOverlay(listening, listenPrompt, onStop = vm::stopListening)
     }
 }

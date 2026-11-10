@@ -40,6 +40,9 @@ class ProductRepository(
         }
     }
 
+    /** Catálogo local, para construir el vocabulario del reconocedor offline. */
+    suspend fun cached(): List<Product> = cache.all().map { it.toDomain() }
+
     /** Lista para elegir sin voz (respaldo si el micrófono no está disponible). */
     suspend fun browse(): List<Product> {
         if (cache.count() == 0) runCatching { refreshCatalog() }

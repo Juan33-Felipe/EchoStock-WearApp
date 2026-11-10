@@ -14,3 +14,9 @@
 -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
 -if interface * { @retrofit2.http.* <methods>; }
 -keep,allowobfuscation interface <1>
+
+# Vosk + JNA (enlace nativo por reflexión)
+-keep class com.sun.jna.** { *; }
+-keep class * implements com.sun.jna.** { *; }
+-keep class org.vosk.** { *; }
+-dontwarn java.awt.**

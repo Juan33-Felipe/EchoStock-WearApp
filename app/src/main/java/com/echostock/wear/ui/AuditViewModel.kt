@@ -14,7 +14,10 @@ import com.echostock.wear.domain.Product
 import com.echostock.wear.domain.SearchHit
 import com.echostock.wear.domain.SubmitOutcome
 import com.echostock.wear.domain.VoiceText
+import com.echostock.wear.domain.VoiceGrammar
 import com.echostock.wear.platform.Haptic
+import com.echostock.wear.platform.OfflineSpeech
+import com.echostock.wear.platform.SpeechUnavailableException
 import com.echostock.wear.platform.RecognizeSpeech
 import com.echostock.wear.platform.Speaker
 import kotlinx.coroutines.Job
@@ -61,6 +64,8 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
     val haptics = container.haptics
     private val speaker = Speaker(app)
     val caption = speaker.caption
+    private val speech = OfflineSpeech(app, viewModelScope).also { it.prewarm() }
+    val listening = speech.state
 
     val operatorCode = container.operatorCode
     val voiceAvailable = RecognizeSpeech.isAvailable(app)
@@ -97,6 +102,42 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- Búsqueda (RF-001) ----
+
+    /**
+     * Dictado con el reconocedor offline del reloj. Si no está disponible (modelo dañado,
+     * permiso denegado) se usa [fallback], que abre el reconocedor del sistema.
+     */
+    fun dictateProduct(fallback: () -> Unit) {
+        speaker.stop()
+        clearMessage()
+        haptics.play(Haptic.TAP)
+        viewModelScope.launch {
+            val grammar = VoiceGrammar.forSearch(container.products.cached())
+            val heard = try {
+                speech.listen(grammar)
+            } catch (e: SpeechUnavailableException) {
+                fallback()
+                return@launch
+            }
+            onSearchVoice(heard)
+        }
+    }
+
+    fun dictateCount(fallback: () -> Unit) {
+        speaker.stop()
+        haptics.play(Haptic.TAP)
+        viewModelScope.launch {
+            val heard = try {
+                speech.listen(VoiceGrammar.forQuantity())
+            } catch (e: SpeechUnavailableException) {
+                fallback()
+                return@launch
+            }
+            onCountVoice(heard)
+        }
+    }
+
+    fun stopListening() = speech.stop()
 
     fun onVoiceUnavailable() {
         haptics.play(Haptic.ERROR)
