@@ -2,6 +2,9 @@ package com.echostock.wear.ui.screens
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -13,6 +16,8 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyListState
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
+import androidx.wear.compose.material.CompactChip
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.ListHeader
 import androidx.wear.compose.material.Text
 import com.echostock.wear.domain.SearchHit
@@ -27,6 +32,7 @@ fun ResultsScreen(
     offline: Boolean,
     listState: ScalingLazyListState,
     onSelect: (SearchHit) -> Unit,
+    onAddProduct: () -> Unit = {},
 ) {
     ScalingLazyColumn(state = listState, modifier = Modifier.fillMaxWidth()) {
         item {
@@ -39,6 +45,14 @@ fun ResultsScreen(
                     fontSize = 14.sp,
                 )
             }
+        }
+        item {
+            CompactChip(
+                onClick = onAddProduct,
+                label = { Text("Agregar por voz", fontSize = 12.sp) },
+                icon = { Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                colors = ChipDefaults.chipColors(backgroundColor = EchoColors.SurfaceHigh, contentColor = EchoColors.Signal),
+            )
         }
         if (offline) {
             item {

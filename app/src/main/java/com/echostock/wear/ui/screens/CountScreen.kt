@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +41,7 @@ import com.echostock.wear.domain.Product
 import com.echostock.wear.ui.components.CircleIconButton
 import com.echostock.wear.ui.components.KeepScreenOn
 import com.echostock.wear.ui.components.PressButton
+import com.echostock.wear.ui.components.VoiceOrbButton
 import com.echostock.wear.ui.theme.EchoColors
 import com.echostock.wear.ui.theme.EyebrowStyle
 import com.echostock.wear.ui.theme.QuantityStyle
@@ -139,13 +139,12 @@ fun CountScreen(
         )
         Spacer(Modifier.height(10.dp))
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CircleIconButton(
+            VoiceOrbButton(
                 onClick = onDictate,
-                background = EchoColors.Signal,
-                size = 48.dp,
+                size = 54.dp,
                 description = "Dictar cantidad",
                 enabled = !submitting,
-            ) { Icon(Icons.Rounded.Mic, null, tint = EchoColors.OnColor, modifier = Modifier.size(24.dp)) }
+            )
 
             PressButton(
                 onClick = onSubmit,
