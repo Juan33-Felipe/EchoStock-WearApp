@@ -8,6 +8,7 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -24,6 +25,12 @@ interface EchoStockApi {
 
     @GET("products")
     suspend fun products(@Query("page") page: Int, @Query("size") size: Int = 100): PageDto<ProductDto>
+
+    @POST("products")
+    suspend fun createProduct(@Body request: CreateProductRequestDto): ProductDto
+
+    @DELETE("products/{sku}")
+    suspend fun deleteProduct(@Path("sku") sku: String): Response<Unit>
 
     /** 201 = nueva, 200 = ya recibida (idempotente por clientAuditId). */
     @POST("audits")

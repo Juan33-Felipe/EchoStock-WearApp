@@ -41,18 +41,22 @@ class AuditRepository(
         queue.insert(PendingAuditEntity.from(draft))
         return try {
             val response = api.submit(draft.toRequest())
-            status.reachable()
             when {
                 response.isSuccessful -> {
+                    status.reachable()
                     queue.delete(listOf(draft.clientAuditId))
                     SubmitOutcome.Synced
                 }
                 response.code() in REJECTION_CODES -> {
+                    status.reachable()
                     val reason = problemDetail(response.errorBody()?.string()) ?: "Rechazada (${response.code()})"
                     queue.markFailed(draft.clientAuditId, reason)
                     SubmitOutcome.Rejected(reason)
                 }
-                else -> queued(draft, "HTTP ${response.code()}")
+                else -> {
+                    status.unreachable()
+                    queued(draft, "HTTP ${response.code()}")
+                }
             }
         } catch (e: Exception) {
             if (e.isTransient()) {

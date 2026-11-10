@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit
 class AuditSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val container = (applicationContext as EchoStockApp).container
+        runCatching { container.products.syncLocalChanges() }
         val report = container.audits.syncPending()
         return if (report.needsRetry) Result.retry() else Result.success()
     }

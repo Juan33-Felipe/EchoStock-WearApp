@@ -43,5 +43,6 @@ class FakeProductDao(initial: List<ProductEntity> = emptyList()) : ProductDao {
     override suspend fun bySku(sku: String) = rows[sku]
     override suspend fun count() = rows.size
     override suspend fun upsert(products: List<ProductEntity>) { products.forEach { rows[it.sku] = it } }
+    override suspend fun deleteBySku(sku: String) { rows.remove(sku) }
     override suspend fun clear() = rows.clear()
 }

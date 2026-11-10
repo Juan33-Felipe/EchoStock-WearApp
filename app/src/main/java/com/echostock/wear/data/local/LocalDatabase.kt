@@ -75,6 +75,9 @@ interface ProductDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(products: List<ProductEntity>)
 
+    @Query("DELETE FROM products WHERE sku = :sku")
+    suspend fun deleteBySku(sku: String)
+
     @Query("DELETE FROM products")
     suspend fun clear()
 

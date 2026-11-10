@@ -16,6 +16,6 @@ class ServerStatus {
     fun unreachable() { _connection.value = Connection.OFFLINE }
 }
 
-/** Errores que significan "no hay servidor ahora mismo" y justifican trabajar en modo offline. */
+/** Errores que significan "no hay servidor válido ahora mismo" y justifican trabajar en modo offline. */
 internal fun Throwable.isTransient(): Boolean =
-    this is IOException || (this is HttpException && (code() >= 500 || code() == 408 || code() == 429))
+    this is IOException || (this is HttpException && (code() >= 500 || code() == 401 || code() == 403 || code() == 408 || code() == 429))

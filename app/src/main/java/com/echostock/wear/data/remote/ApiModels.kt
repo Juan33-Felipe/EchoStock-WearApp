@@ -21,6 +21,15 @@ data class ProductDto(
 }
 
 @Serializable
+data class CreateProductRequestDto(
+    val sku: String? = null,
+    val name: String,
+    val locationCode: String,
+    val unit: String,
+    val systemQuantity: Int,
+)
+
+@Serializable
 data class SearchResultDto(val product: ProductDto, val score: Double, val matchedBy: String) {
     fun toDomain() = SearchHit(
         product = product.toDomain(),
