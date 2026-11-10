@@ -76,6 +76,140 @@ object VoiceText {
         return numbers.firstOrNull()
     }
 
+    sealed interface VoiceCommand {
+        data class Add(val details: String) : VoiceCommand
+        data class Delete(val query: String) : VoiceCommand
+        data class Search(val query: String) : VoiceCommand
+    }
+
+    private val ADD_PREFIXES = setOf("agregar", "agrega", "nuevo", "nueva", "crear", "crea")
+    private val DELETE_PREFIXES = setOf("eliminar", "elimina", "borrar", "borra", "quitar", "quita")
+    private val KNOWN_UNITS = mapOf(
+        "caja" to "cajas", "cajas" to "cajas",
+        "rollo" to "rollos", "rollos" to "rollos",
+        "par" to "pares", "pares" to "pares",
+        "pallet" to "pallets", "pallets" to "pallets", "pale" to "pallets", "pales" to "pallets",
+        "paquete" to "paquetes", "paquetes" to "paquetes",
+        "bolsa" to "bolsas", "bolsas" to "bolsas",
+        "unidad" to "unidades", "unidades" to "unidades",
+    )
+
+    /** Detecta si la frase dictada es un comando para agregar, eliminar o buscar un producto. */
+    fun parseCommand(text: String): VoiceCommand {
+        val tokens = basic(text).split(" ").filter { it.isNotEmpty() }
+        val first = tokens.firstOrNull() ?: return VoiceCommand.Search(text)
+        val restTokens = tokens.drop(1).let {
+            if (it.firstOrNull() == "producto") it.drop(1) else it
+        }
+        val rest = restTokens.joinToString(" ").trim()
+        return when (first) {
+            in ADD_PREFIXES -> VoiceCommand.Add(rest)
+            in DELETE_PREFIXES -> if (rest.isNotEmpty()) VoiceCommand.Delete(rest) else VoiceCommand.Search(text)
+            else -> VoiceCommand.Search(text)
+        }
+    }
+
+    data class NewProductDraft(
+        val name: String,
+        val locationCode: String,
+        val unit: String,
+        val quantity: Int,
+    )
+
+    /**
+     * Extrae nombre, ubicación, unidad y cantidad de una frase dictada para un nuevo producto.
+     * Ej: "guantes azules veinte pares" → NewProductDraft("Guantes azules", "A-01-01", "pares", 20)
+     * Ej: "cajas grandes pasillo b dos uno treinta" → NewProductDraft("Cajas grandes", "B-02-01", "cajas", 30)
+     */
+    fun parseNewProduct(
+        rawText: String,
+        defaultName: String = "",
+        defaultLocation: String = "A-01-01",
+        defaultUnit: String = "unidades",
+        defaultQuantity: Int = 10,
+    ): NewProductDraft {
+        val cleaned = parseCommand(rawText).let { cmd ->
+            when (cmd) {
+                is VoiceCommand.Add -> cmd.details
+                else -> basic(rawText)
+            }
+        }
+        val normalizedTokens = convertLetterNames(convertNumbers(basic(cleaned).split(" ").filter { it.isNotEmpty() }))
+        if (normalizedTokens.isEmpty()) {
+            return NewProductDraft(defaultName, defaultLocation, defaultUnit, defaultQuantity)
+        }
+
+        var location = defaultLocation
+        var quantity: Int? = null
+        var unit: String? = null
+        val nameTokens = mutableListOf<String>()
+
+        var i = 0
+        while (i < normalizedTokens.size) {
+            val t = normalizedTokens[i]
+            // Detectar "pasillo X N M" o "ubicacion X N M"
+            if (t in setOf("pasillo", "ubicacion") && i + 1 < normalizedTokens.size) {
+                val aisle = normalizedTokens.getOrNull(i + 1)?.uppercase()?.takeIf { it.length == 1 && it[0] in 'A'..'Z' }
+                val shelf = normalizedTokens.getOrNull(i + 2)?.toIntOrNull()
+                val level = normalizedTokens.getOrNull(i + 3)?.toIntOrNull()
+                if (aisle != null && shelf != null && level != null) {
+                    location = "%s-%02d-%02d".format(aisle, shelf, level)
+                    i += 4
+                    continue
+                } else if (aisle != null && shelf != null) {
+                    location = "%s-%02d-01".format(aisle, shelf)
+                    i += 3
+                    continue
+                }
+            }
+            if (t in setOf("cantidad", "stock") && normalizedTokens.getOrNull(i + 1)?.toIntOrNull() != null) {
+                quantity = normalizedTokens[i + 1].toInt()
+                i += 2
+                continue
+            }
+            val asInt = t.toIntOrNull()
+            // Si hay un número al final (o seguido de una unidad al final), lo tomamos como cantidad inicial
+            val isTrailingNumber = asInt != null && (
+                i == normalizedTokens.lastIndex ||
+                    (i == normalizedTokens.lastIndex - 1 && normalizedTokens.last() in KNOWN_UNITS)
+                )
+            if (isTrailingNumber && nameTokens.isNotEmpty()) {
+                quantity = asInt
+                val nextUnit = normalizedTokens.getOrNull(i + 1)?.let { KNOWN_UNITS[it] }
+                if (nextUnit != null) {
+                    unit = nextUnit
+                    i += 2
+                } else {
+                    i += 1
+                }
+                continue
+            }
+            nameTokens += t
+            i++
+        }
+
+        // Inferir unidad si la primera palabra del nombre es una unidad conocida ("cajas...", "rollos...", "guantes...")
+        val inferredUnit = unit
+            ?: nameTokens.firstOrNull()?.let { firstWord ->
+                when (firstWord) {
+                    "guante", "guantes" -> "pares"
+                    else -> KNOWN_UNITS[firstWord]
+                }
+            }
+            ?: defaultUnit
+
+        val finalName = nameTokens.joinToString(" ").trim()
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+            .ifEmpty { defaultName }
+
+        return NewProductDraft(
+            name = finalName,
+            locationCode = location,
+            unit = inferredUnit,
+            quantity = quantity ?: defaultQuantity,
+        )
+    }
+
     private fun convertNumbers(tokens: List<String>): List<String> {
         val out = mutableListOf<String>()
         var i = 0

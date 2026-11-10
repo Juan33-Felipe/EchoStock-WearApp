@@ -31,16 +31,23 @@ object VoiceGrammar {
         "o", "pe", "cu", "erre", "ese", "te", "u", "uve", "doble", "equis", "ye", "zeta",
     )
 
-    private val FILLER_WORDS = listOf("pasillo", "estante", "nivel", "ubicación", "sku", "código", "producto", "guion")
+    private val FILLER_WORDS = listOf(
+        "pasillo", "estante", "nivel", "ubicación", "sku", "código", "producto", "guion",
+        "agregar", "nuevo", "nueva", "crear", "eliminar", "borrar", "quitar",
+        "cantidad", "unidades", "cajas", "rollos", "pares", "pallets", "paquetes", "bolsas",
+    )
 
     private const val UNKNOWN = "[unk]"
 
-    /** Gramática para buscar productos: palabras del catálogo + números + letras + relleno. */
+    /** Gramática para buscar productos o dictar comandos ("agregar...", "eliminar..."): palabras del catálogo + números + letras + comandos. */
     fun forSearch(catalog: List<Product>): String? {
         if (catalog.isEmpty()) return null // sin catálogo local: dictado libre
         val catalogWords = catalog.flatMap { words(it.name) + words(it.unit) }
         return toJson(catalogWords + NUMBER_WORDS + LETTER_WORDS + FILLER_WORDS)
     }
+
+    /** Dictado libre en español para registrar el nombre de un producto nuevo que aún no existe en el catálogo. */
+    fun forNewProduct(): String? = null
 
     /** Gramática para dictar una cantidad: solo números. */
     fun forQuantity(): String = toJson(NUMBER_WORDS)

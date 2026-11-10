@@ -33,6 +33,14 @@ object Phrases {
 
     fun countSet(n: Int) = "$n."
 
+    const val PROMPT_NEW_PRODUCT = "Dicta el nombre y la cantidad del producto."
+
+    fun productAdded(p: Product) = "${p.name} agregado con ${p.systemQuantity} ${unit(p.unit, p.systemQuantity)}."
+
+    fun productDeleted(name: String) = "$name eliminado."
+
+    fun confirmDelete(name: String) = "¿Eliminar $name?"
+
     private fun unit(unit: String, quantity: Int): String =
         if (quantity == 1 && unit.endsWith("s") && unit.length > 2) unit.dropLast(if (unit.endsWith("es")) 2 else 1) else unit
 }
