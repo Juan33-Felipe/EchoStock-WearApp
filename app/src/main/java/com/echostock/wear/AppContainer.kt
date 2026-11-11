@@ -6,6 +6,7 @@ import android.provider.Settings
 import com.echostock.wear.data.AuditRepository
 import com.echostock.wear.data.ProductRepository
 import com.echostock.wear.data.ServerStatus
+import com.echostock.wear.data.ThemePreferences
 import com.echostock.wear.data.local.LocalDatabase
 import com.echostock.wear.data.remote.EchoStockApi
 import com.echostock.wear.data.sync.WorkManagerSyncScheduler
@@ -24,6 +25,7 @@ class AppContainer(context: Context) {
     val audits = AuditRepository(api, db.pendingAudits(), scheduler, serverStatus)
 
     val haptics = Haptics(appContext)
+    val theme = ThemePreferences(appContext)
 
     val operatorCode: String = BuildConfig.OPERATOR_CODE
 

@@ -40,6 +40,7 @@ sealed interface HomeMessage {
     data class Searching(val query: String) : HomeMessage
     data class NotFound(val query: String) : HomeMessage
     data class ProductDeleted(val name: String) : HomeMessage
+    data class ThemeChanged(val isDark: Boolean) : HomeMessage
     data object NotUnderstood : HomeMessage
     data object VoiceUnavailable : HomeMessage
 }
@@ -72,6 +73,23 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
 
     val operatorCode = container.operatorCode
     val voiceAvailable = RecognizeSpeech.isAvailable(app)
+    val isDarkMode: StateFlow<Boolean> = container.theme.isDarkMode
+
+    fun toggleTheme() {
+        haptics.play(Haptic.TAP)
+        val newDark = container.theme.toggle()
+        val modeName = if (newDark) "oscuro" else "claro"
+        speaker.speak("Modo $modeName activado")
+        _state.update { it.copy(message = HomeMessage.ThemeChanged(newDark)) }
+    }
+
+    fun setDarkMode(dark: Boolean) {
+        haptics.play(Haptic.CONFIRMED)
+        container.theme.setDarkMode(dark)
+        val modeName = if (dark) "oscuro" else "claro"
+        speaker.speak("Modo $modeName activado")
+        _state.update { it.copy(message = HomeMessage.ThemeChanged(dark)) }
+    }
 
     private val _state = MutableStateFlow(FlowState())
     val state: StateFlow<FlowState> = _state.asStateFlow()
@@ -122,6 +140,10 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
                 fallback()
                 return@launch
             }
+            if (heard.isNullOrEmpty() && voiceAvailable) {
+                fallback()
+                return@launch
+            }
             onSearchVoice(heard)
         }
     }
@@ -156,6 +178,12 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
         }
         haptics.play(Haptic.HEARD)
         when (val cmd = VoiceText.parseCommand(alternatives.first())) {
+            is VoiceText.VoiceCommand.SetTheme -> {
+                setDarkMode(cmd.dark)
+            }
+            is VoiceText.VoiceCommand.ToggleTheme -> {
+                toggleTheme()
+            }
             is VoiceText.VoiceCommand.Add -> {
                 openAddProduct(cmd.details)
             }
@@ -193,6 +221,10 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
                             resultsTitle = "“$shown”",
                             offlineResults = outcome!!.offline,
                         )
+                    }
+                    val firstLoc = hits.firstOrNull()?.product?.locationCode
+                    if (firstLoc != null) {
+                        speaker.speak(Phrases.multipleResults(shown, hits.size, firstLoc))
                     }
                     _navigation.tryEmit(Route.RESULTS)
                 }
@@ -247,6 +279,14 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
         state.value.product?.let { speaker.speak(Phrases.systemStatus(it)) }
     }
 
+    fun speakLocation() {
+        state.value.product?.let { speaker.speak("${it.name}, ${Phrases.location(it.locationCode)}.") }
+    }
+
+    fun searchDirect(query: String) {
+        onSearchVoice(listOf(query))
+    }
+
     // ---- Agregar y eliminar productos por voz ----
 
     fun openAddProduct(initialRaw: String = "") {
@@ -297,6 +337,10 @@ class AuditViewModel(app: Application) : AndroidViewModel(app) {
         )
         _state.update { it.copy(newProductDraft = updated) }
         speaker.speak("${updated.name}, ${updated.quantity} ${updated.unit}.")
+    }
+
+    fun updateNewProductName(name: String) {
+        _state.update { s -> s.copy(newProductDraft = s.newProductDraft.copy(name = name)) }
     }
 
     fun adjustNewProductQuantity(delta: Int, withHaptic: Boolean = true) {
