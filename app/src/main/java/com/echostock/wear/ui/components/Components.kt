@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -48,18 +49,20 @@ import androidx.wear.compose.material.Text
 import com.echostock.wear.domain.Connection
 import com.echostock.wear.platform.Haptic
 import com.echostock.wear.ui.SyncState
+import com.echostock.wear.ui.theme.DarkEchoColors
+import com.echostock.wear.ui.theme.EchoColorScheme
 import com.echostock.wear.ui.theme.EchoColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-fun Haptic.color(): Color = when (this) {
-    Haptic.TAP -> EchoColors.OnSurface
-    Haptic.HEARD -> EchoColors.Signal
-    Haptic.CONFIRMED -> EchoColors.Match
-    Haptic.DISCREPANCY -> EchoColors.Discrepancy
-    Haptic.QUEUED -> EchoColors.Offline
-    Haptic.ERROR -> EchoColors.Discrepancy
+fun Haptic.color(scheme: EchoColorScheme = DarkEchoColors): Color = when (this) {
+    Haptic.TAP -> scheme.onSurface
+    Haptic.HEARD -> scheme.signal
+    Haptic.CONFIRMED -> scheme.match
+    Haptic.DISCREPANCY -> scheme.discrepancy
+    Haptic.QUEUED -> scheme.offline
+    Haptic.ERROR -> scheme.discrepancy
 }
 
 /**
@@ -71,11 +74,12 @@ fun HapticPulseOverlay(events: Flow<Haptic>, content: @Composable () -> Unit) {
     val alpha = remember { Animatable(0f) }
     var color by remember { mutableStateOf(Color.White) }
     var strong by remember { mutableStateOf(false) }
+    val scheme = EchoColors.current
 
-    LaunchedEffect(events) {
+    LaunchedEffect(events, scheme) {
         events.collect { h ->
             launch {
-                color = h.color()
+                color = h.color(scheme)
                 strong = h != Haptic.TAP
                 alpha.snapTo(if (strong) 1f else 0.45f)
                 alpha.animateTo(0f, tween(if (strong) 650 else 260, easing = FastOutSlowInEasing))
@@ -156,6 +160,38 @@ fun PressButton(
     )
     val currentOnClick by rememberUpdatedState(onClick)
 
+    val clickModifier = if (repeatOnHold) {
+        Modifier.pointerInput(enabled) {
+            if (!enabled) return@pointerInput
+            kotlinx.coroutines.coroutineScope {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        var repeated = false
+                        val repeater = launch {
+                            delay(450)
+                            while (true) {
+                                repeated = true
+                                currentOnClick()
+                                delay(70)
+                            }
+                        }
+                        val released = tryAwaitRelease()
+                        repeater.cancel()
+                        pressed = false
+                        if (released && !repeated) currentOnClick()
+                    },
+                )
+            }
+        }
+    } else {
+        Modifier.clickable(
+            enabled = enabled,
+            onClickLabel = description,
+            onClick = currentOnClick,
+        )
+    }
+
     Box(
         modifier
             .scale(scale)
@@ -164,32 +200,8 @@ fun PressButton(
             .semantics {
                 role = Role.Button
                 contentDescription = description
-                onClick { currentOnClick(); true }
             }
-            .pointerInput(enabled, repeatOnHold) {
-                if (!enabled) return@pointerInput
-                kotlinx.coroutines.coroutineScope {
-                    detectTapGestures(
-                        onPress = {
-                            pressed = true
-                            var repeated = false
-                            val repeater = if (repeatOnHold) launch {
-                                delay(450)
-                                while (true) {
-                                    repeated = true
-                                    currentOnClick()
-                                    delay(70)
-                                }
-                            } else null
-                            val released = tryAwaitRelease()
-                            repeater?.cancel()
-                            pressed = false
-                            // Si ya estaba repitiendo, soltar no suma un paso extra.
-                            if (released && !repeated) currentOnClick()
-                        },
-                    )
-                }
-            },
+            .then(clickModifier),
         contentAlignment = Alignment.Center,
     ) { content() }
 }

@@ -10,7 +10,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -284,9 +286,10 @@ fun VoiceOrbButton(
     enabled: Boolean = true,
     colors: List<Color> = VoiceOrbDefaults.Colors,
 ) {
-    var pressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.88f else 1f,
+        targetValue = if (isPressed) 0.88f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium,
@@ -299,27 +302,19 @@ fun VoiceOrbButton(
         modifier = modifier
             .size(size)
             .scale(scale)
-            .semantics {
-                role = Role.Button
-                contentDescription = description
-                onClick { currentOnClick(); true }
-            }
-            .pointerInput(enabled) {
-                if (!enabled) return@pointerInput
-                detectTapGestures(
-                    onPress = {
-                        pressed = true
-                        val released = tryAwaitRelease()
-                        pressed = false
-                        if (released) currentOnClick()
-                    },
-                )
-            },
+            .clickable(
+                enabled = enabled,
+                onClickLabel = description,
+                role = Role.Button,
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = currentOnClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         VoiceOrb(
             modifier = Modifier.fillMaxSize(),
-            activity = if (pressed) (activity + 0.35f).coerceAtMost(1f) else activity,
+            activity = if (isPressed) (activity + 0.35f).coerceAtMost(1f) else activity,
             enabled = enabled,
             colors = colors,
         )

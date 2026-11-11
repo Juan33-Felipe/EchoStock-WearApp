@@ -90,6 +90,7 @@ fun ListeningOverlay(state: ListenState, prompt: String, onStop: () -> Unit) {
 /** Tres ondas concéntricas desfasadas que se expanden y se desvanecen. */
 @Composable
 private fun Ripples() {
+    val signal = EchoColors.Signal
     val t = rememberInfiniteTransition(label = "ripples")
     val phase by t.animateFloat(
         initialValue = 0f,
@@ -103,7 +104,7 @@ private fun Ripples() {
         repeat(3) { i ->
             val p = (phase + i / 3f) % 1f
             drawCircle(
-                color = EchoColors.Signal.copy(alpha = (1f - p) * 0.55f),
+                color = signal.copy(alpha = (1f - p) * 0.55f),
                 radius = base + (max - base) * p,
                 style = Stroke(width = 2.dp.toPx()),
             )
