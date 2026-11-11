@@ -13,6 +13,23 @@ object Phrases {
         return "pasillo $aisle, estante ${shelf.trimStart('0').ifEmpty { "0" }}, nivel ${level.trimStart('0').ifEmpty { "0" }}"
     }
 
+    /** Etiqueta visual formateada para la interfaz ("Pasillo A · Estante 1 · Nivel 3"). */
+    fun locationLabel(code: String): String {
+        val parts = code.split('-', ' ').filter { it.isNotBlank() }
+        if (parts.size != 3) return code
+        val (aisle, shelf, level) = parts
+        return "Pasillo $aisle · Estante ${shelf.trimStart('0').ifEmpty { "0" }} · Nivel ${level.trimStart('0').ifEmpty { "0" }}"
+    }
+
+    /** Solo el pasillo para listas resumidas ("Pasillo A"). */
+    fun aisleOnly(code: String): String {
+        val parts = code.split('-', ' ').filter { it.isNotBlank() }
+        return if (parts.isNotEmpty()) "Pasillo ${parts[0]}" else code
+    }
+
+    fun multipleResults(query: String, count: Int, firstLocation: String): String =
+        "Encontré $count resultados para $query. El primero en ${location(firstLocation)}."
+
     /** RF-002: "Cajas tipo A, pasillo A, estante 1, nivel 3. Sistema indica 50 cajas." */
     fun systemStatus(p: Product): String =
         "${p.name}, ${location(p.locationCode)}. Sistema indica ${p.systemQuantity} ${unit(p.unit, p.systemQuantity)}."

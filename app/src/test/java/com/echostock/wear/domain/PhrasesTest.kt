@@ -26,4 +26,16 @@ class PhrasesTest {
     @Test fun `ubicación con formato inesperado se lee tal cual`() {
         assertEquals("ZONA 4", Phrases.location("ZONA-4"))
     }
+
+    @Test fun `etiquetas visuales de pasillo`() {
+        assertEquals("Pasillo A · Estante 1 · Nivel 3", Phrases.locationLabel("A-01-03"))
+        assertEquals("Pasillo A", Phrases.aisleOnly("A-01-03"))
+    }
+
+    @Test fun `anuncio de múltiples resultados con pasillo del primero`() {
+        assertEquals(
+            "Encontré 3 resultados para cajas. El primero en pasillo A, estante 1, nivel 1.",
+            Phrases.multipleResults("cajas", 3, "A-01-01")
+        )
+    }
 }

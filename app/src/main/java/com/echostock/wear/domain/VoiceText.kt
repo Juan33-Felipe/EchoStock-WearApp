@@ -79,11 +79,31 @@ object VoiceText {
     sealed interface VoiceCommand {
         data class Add(val details: String) : VoiceCommand
         data class Delete(val query: String) : VoiceCommand
+        data class SetTheme(val dark: Boolean) : VoiceCommand
+        data object ToggleTheme : VoiceCommand
         data class Search(val query: String) : VoiceCommand
     }
 
     private val ADD_PREFIXES = setOf("agregar", "agrega", "nuevo", "nueva", "crear", "crea")
     private val DELETE_PREFIXES = setOf("eliminar", "elimina", "borrar", "borra", "quitar", "quita")
+    private val SEARCH_PREFIXES = setOf("buscar", "busca", "busco", "encuentra", "encontrar", "ver", "localizar", "ir", "dime")
+    private val SEARCH_PHRASES_PREFIX = listOf(
+        "donde estan", "donde esta", "en que pasillo estan", "en que pasillo esta",
+        "cual es el pasillo de", "donde encuentro", "donde quedan", "donde queda",
+    )
+    private val LIGHT_MODE_PHRASES = setOf(
+        "modo claro", "tema claro", "activar modo claro", "activar tema claro",
+        "poner modo claro", "poner tema claro", "cambiar a modo claro", "cambiar a tema claro",
+        "modo dia", "tema dia", "claro",
+    )
+    private val DARK_MODE_PHRASES = setOf(
+        "modo oscuro", "tema oscuro", "activar modo oscuro", "activar tema oscuro",
+        "poner modo oscuro", "poner tema oscuro", "cambiar a modo oscuro", "cambiar a tema oscuro",
+        "modo noche", "tema noche", "oscuro",
+    )
+    private val TOGGLE_THEME_PHRASES = setOf(
+        "cambiar tema", "cambiar modo", "alternar tema", "alternar modo",
+    )
     private val KNOWN_UNITS = mapOf(
         "caja" to "cajas", "cajas" to "cajas",
         "rollo" to "rollos", "rollos" to "rollos",
@@ -94,9 +114,35 @@ object VoiceText {
         "unidad" to "unidades", "unidades" to "unidades",
     )
 
-    /** Detecta si la frase dictada es un comando para agregar, eliminar o buscar un producto. */
+    /** Limpia prefijos comunes de búsqueda como "buscar...", "dónde están las..." para obtener el término real. */
+    fun cleanSearchQuery(text: String): String {
+        var t = basic(text)
+        for (phrase in SEARCH_PHRASES_PREFIX) {
+            if (t.startsWith(phrase)) {
+                t = t.removePrefix(phrase).trim()
+                break
+            }
+        }
+        val tokens = t.split(" ").filter { it.isNotEmpty() }
+        val withoutPrefix = if (tokens.firstOrNull() in SEARCH_PREFIXES) tokens.drop(1) else tokens
+        val withoutArticles = withoutPrefix.dropWhile { it in setOf("el", "la", "los", "las", "un", "una", "de", "del", "al", "a", "producto", "artículo", "articulo") }
+        val cleaned = withoutArticles.joinToString(" ").trim()
+        return cleaned.ifBlank { text.trim() }
+    }
+
+    /** Detecta si la frase dictada es un comando para agregar, eliminar, cambiar de tema o buscar un producto. */
     fun parseCommand(text: String): VoiceCommand {
-        val tokens = basic(text).split(" ").filter { it.isNotEmpty() }
+        val basicText = basic(text)
+        when {
+            basicText in LIGHT_MODE_PHRASES || basicText.startsWith("modo claro") || basicText.startsWith("tema claro") ->
+                return VoiceCommand.SetTheme(dark = false)
+            basicText in DARK_MODE_PHRASES || basicText.startsWith("modo oscuro") || basicText.startsWith("tema oscuro") ->
+                return VoiceCommand.SetTheme(dark = true)
+            basicText in TOGGLE_THEME_PHRASES ->
+                return VoiceCommand.ToggleTheme
+        }
+
+        val tokens = basicText.split(" ").filter { it.isNotEmpty() }
         val first = tokens.firstOrNull() ?: return VoiceCommand.Search(text)
         val restTokens = tokens.drop(1).let {
             if (it.firstOrNull() == "producto") it.drop(1) else it
@@ -104,8 +150,8 @@ object VoiceText {
         val rest = restTokens.joinToString(" ").trim()
         return when (first) {
             in ADD_PREFIXES -> VoiceCommand.Add(rest)
-            in DELETE_PREFIXES -> if (rest.isNotEmpty()) VoiceCommand.Delete(rest) else VoiceCommand.Search(text)
-            else -> VoiceCommand.Search(text)
+            in DELETE_PREFIXES -> if (rest.isNotEmpty()) VoiceCommand.Delete(cleanSearchQuery(rest)) else VoiceCommand.Search(cleanSearchQuery(text))
+            else -> VoiceCommand.Search(cleanSearchQuery(text))
         }
     }
 

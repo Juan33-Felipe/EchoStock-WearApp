@@ -54,4 +54,21 @@ class VoiceTextTest {
         assertEquals("guantes de nitrilo talla m", VoiceText.normalize("guantes de nitrilo talla eme"))
         assertEquals("w", VoiceText.normalize("doble ve"))
     }
+
+    @Test fun `comandos de voz para modo claro y modo oscuro`() {
+        assertEquals(VoiceText.VoiceCommand.SetTheme(dark = false), VoiceText.parseCommand("modo claro"))
+        assertEquals(VoiceText.VoiceCommand.SetTheme(dark = false), VoiceText.parseCommand("activar modo claro"))
+        assertEquals(VoiceText.VoiceCommand.SetTheme(dark = false), VoiceText.parseCommand("tema claro"))
+        assertEquals(VoiceText.VoiceCommand.SetTheme(dark = true), VoiceText.parseCommand("modo oscuro"))
+        assertEquals(VoiceText.VoiceCommand.SetTheme(dark = true), VoiceText.parseCommand("activar tema oscuro"))
+        assertEquals(VoiceText.VoiceCommand.ToggleTheme, VoiceText.parseCommand("cambiar tema"))
+        assertEquals(VoiceText.VoiceCommand.ToggleTheme, VoiceText.parseCommand("cambiar modo"))
+    }
+
+    @Test fun `comandos de búsqueda por voz limpian prefijos y artículos`() {
+        assertEquals(VoiceText.VoiceCommand.Search("cajas"), VoiceText.parseCommand("buscar cajas"))
+        assertEquals(VoiceText.VoiceCommand.Search("cajas"), VoiceText.parseCommand("dónde están las cajas"))
+        assertEquals(VoiceText.VoiceCommand.Search("tornillos"), VoiceText.parseCommand("en qué pasillo están los tornillos"))
+        assertEquals(VoiceText.VoiceCommand.Search("pasillo a"), VoiceText.parseCommand("buscar pasillo a"))
+    }
 }

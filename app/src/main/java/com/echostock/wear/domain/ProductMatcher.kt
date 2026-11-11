@@ -41,6 +41,8 @@ object ProductMatcher {
             when {
                 VoiceText.compact(p.sku) == qCompact -> SearchHit(p, 1.0, MatchedBy.SKU)
                 VoiceText.segmentKey(p.locationCode) == qSegments -> SearchHit(p, 0.9, MatchedBy.LOCATION)
+                VoiceText.segmentKey(p.locationCode).startsWith("$qSegments|") ||
+                VoiceText.compact(p.locationCode.split("-").firstOrNull().orEmpty()) == qCompact -> SearchHit(p, 0.85, MatchedBy.LOCATION)
                 else -> {
                     val s = nameScore(qTokens, qCompact, p.name)
                     if (s >= MIN_SCORE) SearchHit(p, s, MatchedBy.NAME) else null

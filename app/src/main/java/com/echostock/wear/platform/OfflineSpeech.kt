@@ -116,7 +116,11 @@ class OfflineSpeech(private val context: Context, private val scope: CoroutineSc
                     finish(null)
                 }
 
-                override fun onTimeout() = finish(null)
+                override fun onTimeout() {
+                    val finalHypothesis = recognizer.finalResult
+                    val alternatives = VoiceGrammar.parseResult(finalHypothesis)
+                    finish(alternatives.takeIf { it.isNotEmpty() })
+                }
             }
 
             val injected = debugInjectedAudio()

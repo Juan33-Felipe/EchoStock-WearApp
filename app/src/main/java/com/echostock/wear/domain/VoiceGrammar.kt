@@ -33,8 +33,13 @@ object VoiceGrammar {
 
     private val FILLER_WORDS = listOf(
         "pasillo", "estante", "nivel", "ubicación", "sku", "código", "producto", "guion",
-        "agregar", "nuevo", "nueva", "crear", "eliminar", "borrar", "quitar",
+        "agregar", "agrega", "nuevo", "nueva", "crear", "eliminar", "elimina", "borrar", "quitar",
+        "buscar", "busca", "busco", "encuentra", "encontrar", "dónde", "donde", "está", "esta", "están", "estan",
+        "cuál", "cual", "cuáles", "cuales", "en", "el", "la", "los", "las", "un", "una", "de", "del", "al", "a", "por", "favor",
+        "ver", "ir", "fila", "artículo", "inventario", "stock", "cuántos", "cuantos", "cuántas", "cuantas", "hay",
         "cantidad", "unidades", "cajas", "rollos", "pares", "pallets", "paquetes", "bolsas",
+        "lápiz", "lápices", "lapiz", "lapices", "caja", "guante", "guantes", "cinta", "cintas", "tornillo", "tornillos",
+        "modo", "tema", "claro", "clara", "oscuro", "oscura", "dia", "noche", "activar", "cambiar",
     )
 
     private const val UNKNOWN = "[unk]"
@@ -52,8 +57,11 @@ object VoiceGrammar {
     /** Gramática para dictar una cantidad: solo números. */
     fun forQuantity(): String = toJson(NUMBER_WORDS)
 
-    private fun words(text: String): List<String> =
-        text.lowercase().split(Regex("[^\\p{L}0-9]+")).filter { it.length > 1 || it.firstOrNull()?.isLetter() == true }
+    private fun words(text: String): List<String> {
+        val raw = text.lowercase().split(Regex("[^\\p{L}0-9]+")).filter { it.length > 1 || it.firstOrNull()?.isLetter() == true }
+        val stripped = raw.map { java.text.Normalizer.normalize(it, java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "") }
+        return raw + stripped
+    }
 
     private fun toJson(words: List<String>): String =
         JsonArray((words.distinct().sorted() + UNKNOWN).map { JsonPrimitive(it) }).toString()
