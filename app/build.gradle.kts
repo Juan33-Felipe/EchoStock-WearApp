@@ -17,6 +17,11 @@ val localProperties = Properties().apply {
 val configuredApiKey: String = localProperties.getProperty("echostock.apiKey")
     ?: System.getenv("ECHOSTOCK_API_KEY")
     ?: "echostock-dev-key"
+val configuredApiBaseUrl: String = (
+    localProperties.getProperty("echostock.apiBaseUrl")
+        ?: System.getenv("ECHOSTOCK_API_BASE_URL")
+        ?: "http://10.0.2.2:8080/api/v1/"
+    ).let { if (it.endsWith("/")) it else "$it/" }
 
 android {
     namespace = "com.echostock.wear"
@@ -29,8 +34,8 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        // 10.0.2.2 = localhost del PC visto desde el emulador.
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/api/v1/\"")
+        // 10.0.2.2 = localhost del PC visto desde el emulador (sobrescribible con echostock.apiBaseUrl).
+        buildConfigField("String", "API_BASE_URL", "\"$configuredApiBaseUrl\"")
         buildConfigField("String", "API_KEY", "\"$configuredApiKey\"")
         buildConfigField("String", "OPERATOR_CODE", "\"OP-07\"")
     }
