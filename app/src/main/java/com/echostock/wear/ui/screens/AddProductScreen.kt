@@ -1,16 +1,21 @@
 package com.echostock.wear.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
@@ -23,12 +28,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.wear.compose.material.ChipDefaults
+import androidx.wear.compose.material.CompactChip
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
 import com.echostock.wear.domain.VoiceText
@@ -40,8 +49,8 @@ import com.echostock.wear.ui.theme.EchoColors
 import com.echostock.wear.ui.theme.EyebrowStyle
 
 /**
- * Pantalla para agregar un nuevo producto mediante voz (sin teclado, RNF-001).
- * El operario dicta el nombre (y opcionalmente cantidad/ubicación) tocando el VoiceOrb,
+ * Pantalla para agregar un nuevo producto mediante voz (sin teclado, RNF-001) o texto directo.
+ * El operario dicta el nombre (o lo escribe) tocando el VoiceOrb o el campo de texto,
  * ajusta la cantidad inicial con +/− o la corona y confirma con Guardar.
  */
 @Composable
@@ -51,6 +60,7 @@ fun AddProductScreen(
     onDictateDetails: () -> Unit,
     onAdjustQuantity: (delta: Int, haptic: Boolean) -> Unit,
     onSave: () -> Unit,
+    onNameChange: (String) -> Unit = {},
 ) {
     KeepScreenOn()
     val focus = remember { FocusRequester() }
@@ -80,16 +90,56 @@ fun AddProductScreen(
         Spacer(Modifier.height(10.dp))
         Text("NUEVO PRODUCTO", style = EyebrowStyle, color = EchoColors.Signal)
         Spacer(Modifier.height(3.dp))
-        Text(
-            if (hasName) draft.name else "Toca el orbe y dicta el nombre",
-            fontSize = 14.sp,
-            fontWeight = if (hasName) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (hasName) EchoColors.OnSurface else EchoColors.Muted,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 8.dp),
+        BasicTextField(
+            value = draft.name,
+            onValueChange = onNameChange,
+            textStyle = TextStyle(
+                color = EchoColors.OnSurface,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+            ),
+            cursorBrush = SolidColor(EchoColors.Signal),
+            singleLine = true,
+            modifier = Modifier.padding(horizontal = 6.dp),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.92f)
+                        .background(EchoColors.SurfaceHigh, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (draft.name.isBlank()) {
+                        Text(
+                            "Toca o dicta nombre",
+                            fontSize = 12.sp,
+                            color = EchoColors.Muted,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    innerTextField()
+                }
+            },
         )
+        Spacer(Modifier.height(2.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            listOf("Cajas", "Cintas", "Guantes", "Tornillos").forEach { item ->
+                val selected = draft.name.equals(item, ignoreCase = true)
+                CompactChip(
+                    onClick = { onNameChange(item) },
+                    label = { Text(item, fontSize = 9.sp) },
+                    colors = ChipDefaults.chipColors(
+                        backgroundColor = if (selected) EchoColors.Signal else EchoColors.SurfaceHigh,
+                        contentColor = if (selected) EchoColors.OnColor else EchoColors.OnSurface,
+                    ),
+                )
+            }
+        }
+        Spacer(Modifier.height(2.dp))
         Text(
             "${draft.locationCode} · ${draft.unit}",
             fontSize = 11.sp,

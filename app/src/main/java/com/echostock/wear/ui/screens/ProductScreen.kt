@@ -1,5 +1,6 @@
 package com.echostock.wear.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,14 +11,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
+import com.echostock.wear.domain.Phrases
 import com.echostock.wear.domain.Product
 import com.echostock.wear.ui.components.KeepScreenOn
 import com.echostock.wear.ui.components.PressButton
@@ -43,6 +48,7 @@ fun ProductScreen(
     submitting: Boolean,
     confirmingDelete: Boolean = false,
     onRepeat: () -> Unit,
+    onRepeatLocation: () -> Unit = onRepeat,
     onMatch: () -> Unit,
     onMismatch: () -> Unit,
     onRequestDelete: () -> Unit = {},
@@ -55,8 +61,32 @@ fun ProductScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Spacer(Modifier.height(10.dp))
-        Text("${product.locationCode} · ${product.sku}", style = EyebrowStyle, color = EchoColors.Signal)
+        Spacer(Modifier.height(8.dp))
+        // Insignia del pasillo y ubicación exacta, interactiva para reproducir por voz
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(EchoColors.SurfaceHigh)
+                .clickable(onClickLabel = "Escuchar pasillo y ubicación", onClick = onRepeatLocation)
+                .padding(horizontal = 8.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Rounded.GraphicEq,
+                contentDescription = null,
+                tint = EchoColors.Signal,
+                modifier = Modifier.size(13.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                Phrases.locationLabel(product.locationCode),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = EchoColors.Signal,
+            )
+        }
+        Spacer(Modifier.height(2.dp))
+        Text("${product.locationCode} · ${product.sku}", style = EyebrowStyle, color = EchoColors.Muted)
         Spacer(Modifier.height(2.dp))
         Text(
             product.name,

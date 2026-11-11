@@ -75,9 +75,9 @@ fun ResultsScreen(
                 label = { Text(p.name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 14.sp) },
                 secondaryLabel = {
                     Text(
-                        "${p.locationCode} · ${p.sku}",
+                        "${com.echostock.wear.domain.Phrases.aisleOnly(p.locationCode)} (${p.locationCode}) · ${p.sku}",
                         maxLines = 1,
-                        color = EchoColors.Muted,
+                        color = EchoColors.Signal,
                         fontSize = 12.sp,
                     )
                 },

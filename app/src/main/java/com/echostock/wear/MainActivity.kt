@@ -13,7 +13,9 @@ import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,9 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.PositionIndicator
 import androidx.wear.compose.material.Scaffold
 import androidx.wear.compose.material.TimeText
+import androidx.wear.compose.material.TimeTextDefaults
 import androidx.wear.compose.material.Vignette
 import androidx.wear.compose.material.VignettePosition
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
@@ -43,6 +47,7 @@ import com.echostock.wear.ui.screens.DoneScreen
 import com.echostock.wear.ui.screens.HomeScreen
 import com.echostock.wear.ui.screens.ProductScreen
 import com.echostock.wear.ui.screens.ResultsScreen
+import com.echostock.wear.ui.theme.EchoColors
 import com.echostock.wear.ui.theme.EchoStockTheme
 
 class MainActivity : ComponentActivity() {
@@ -52,9 +57,10 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         setContent {
-            EchoStockTheme {
+            val isDark by viewModel.isDarkMode.collectAsStateWithLifecycle()
+            EchoStockTheme(darkTheme = isDark) {
                 HapticPulseOverlay(viewModel.haptics.events) {
-                    EchoStockNavigation(viewModel)
+                    EchoStockNavigation(viewModel, isDark)
                 }
             }
         }
@@ -62,7 +68,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun EchoStockNavigation(vm: AuditViewModel) {
+private fun EchoStockNavigation(vm: AuditViewModel, isDark: Boolean) {
     val nav = rememberSwipeDismissableNavController()
     val state by vm.state.collectAsStateWithLifecycle()
     val sync by vm.sync.collectAsStateWithLifecycle()
@@ -122,13 +128,22 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
     val caption by vm.caption.collectAsStateWithLifecycle()
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colors.background),
         timeText = {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                TimeText()
+                TimeText(
+                    timeTextStyle = TimeTextDefaults.timeTextStyle(color = EchoColors.OnSurface),
+                )
                 CaptionBanner(caption)
             }
         },
-        vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) },
+        vignette = {
+            if (isDark) {
+                Vignette(vignettePosition = VignettePosition.TopAndBottom)
+            }
+        },
         positionIndicator = { PositionIndicator(scalingLazyListState = listState) },
     ) {
         SwipeDismissableNavHost(navController = nav, startDestination = Route.HOME.name) {
@@ -137,9 +152,12 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
                     message = state.message,
                     sync = sync,
                     operator = vm.operatorCode,
+                    isDark = isDark,
+                    onToggleTheme = vm::toggleTheme,
                     onDictate = dictateProduct,
                     onBrowse = vm::browseCatalog,
                     onAddProduct = { vm.openAddProduct() },
+                    onQuickSearch = vm::searchDirect,
                 )
             }
             composable(Route.RESULTS.name) {
@@ -159,6 +177,7 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
                     onDictateDetails = dictateNewProduct,
                     onAdjustQuantity = vm::adjustNewProductQuantity,
                     onSave = vm::saveNewProduct,
+                    onNameChange = vm::updateNewProductName,
                 )
             }
             composable(Route.PRODUCT.name) {
@@ -168,6 +187,7 @@ private fun EchoStockNavigation(vm: AuditViewModel) {
                         submitting = state.submitting,
                         confirmingDelete = state.confirmingDelete,
                         onRepeat = vm::repeatStatus,
+                        onRepeatLocation = vm::speakLocation,
                         onMatch = vm::confirmMatch,
                         onMismatch = vm::openCount,
                         onRequestDelete = vm::requestDeleteProduct,

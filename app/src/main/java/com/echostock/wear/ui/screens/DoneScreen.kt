@@ -35,6 +35,8 @@ import androidx.wear.compose.material.Text
 import com.echostock.wear.domain.AuditResult
 import com.echostock.wear.domain.SubmitOutcome
 import com.echostock.wear.ui.Done
+import com.echostock.wear.ui.theme.DarkEchoColors
+import com.echostock.wear.ui.theme.EchoColorScheme
 import com.echostock.wear.ui.theme.EchoColors
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -45,7 +47,7 @@ import kotlin.math.abs
  */
 @Composable
 fun DoneScreen(done: Done, onFinish: () -> Unit) {
-    val look = done.look()
+    val look = done.look(EchoColors.current)
     val pop = remember { Animatable(0.6f) }
     LaunchedEffect(done) {
         pop.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
@@ -87,16 +89,16 @@ fun DoneScreen(done: Done, onFinish: () -> Unit) {
 
 private data class Look(val background: Color, val icon: ImageVector, val title: String, val subtitle: String)
 
-private fun Done.look(): Look = when (outcome) {
-    is SubmitOutcome.Rejected -> Look(EchoColors.Discrepancy, Icons.Rounded.ErrorOutline, "No registrado", outcome.reason)
+private fun Done.look(scheme: EchoColorScheme = DarkEchoColors): Look = when (outcome) {
+    is SubmitOutcome.Rejected -> Look(scheme.discrepancy, Icons.Rounded.ErrorOutline, "No registrado", outcome.reason)
     SubmitOutcome.QueuedOffline -> Look(
-        EchoColors.Offline, Icons.Rounded.CloudOff, "Guardado en el reloj",
+        scheme.offline, Icons.Rounded.CloudOff, "Guardado en el reloj",
         "Se enviará al recuperar señal",
     )
     SubmitOutcome.Synced -> when (result) {
-        AuditResult.MATCH -> Look(EchoColors.Match, Icons.Rounded.CheckCircle, "Confirmado", product.name)
+        AuditResult.MATCH -> Look(scheme.match, Icons.Rounded.CheckCircle, "Confirmado", product.name)
         AuditResult.DISCREPANCY -> Look(
-            EchoColors.Discrepancy, Icons.Rounded.ReportProblem,
+            scheme.discrepancy, Icons.Rounded.ReportProblem,
             if (difference > 0) "Sobran ${abs(difference)}" else "Faltan ${abs(difference)}",
             "Discrepancia enviada a revisión",
         )
