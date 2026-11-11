@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,16 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+val configuredApiKey: String = localProperties.getProperty("echostock.apiKey")
+    ?: System.getenv("ECHOSTOCK_API_KEY")
+    ?: "echostock-dev-key"
 
 android {
     namespace = "com.echostock.wear"
@@ -19,7 +31,7 @@ android {
 
         // 10.0.2.2 = localhost del PC visto desde el emulador.
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/api/v1/\"")
-        buildConfigField("String", "API_KEY", "\"echostock-dev-key\"")
+        buildConfigField("String", "API_KEY", "\"$configuredApiKey\"")
         buildConfigField("String", "OPERATOR_CODE", "\"OP-07\"")
     }
 
